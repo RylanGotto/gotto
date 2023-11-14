@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RylanGotto/gotto/render"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 )
@@ -21,8 +22,9 @@ type Gotto struct {
 	ErrorLog *log.Logger
 	InfoLog  *log.Logger
 	RootPath string
-	config   config
 	Routes   *chi.Mux
+	Render   *render.Render
+	config   config
 }
 
 type config struct {
@@ -66,6 +68,8 @@ func (g *Gotto) New(rootPath string) error {
 		renderer: os.Getenv("RENDERER"),
 	}
 
+	g.Render = g.createRenderer(g)
+
 	return nil
 }
 
@@ -105,7 +109,7 @@ func (g *Gotto) ListenAndServe() {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", os.Getenv("PORT")),
 		ErrorLog:     g.ErrorLog,
-		Handler:      g.routes(),
+		Handler:      g.Routes,
 		IdleTimeout:  30 * time.Second,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 600 * time.Second,
@@ -114,4 +118,14 @@ func (g *Gotto) ListenAndServe() {
 	g.InfoLog.Printf("Starting server on port %s", os.Getenv("PORT"))
 	err := srv.ListenAndServe()
 	g.ErrorLog.Fatal(err)
+}
+
+func (g *Gotto) createRenderer(got *Gotto) *render.Render {
+	myRenderer := render.Render{
+		Renderer: got.config.renderer,
+		RootPath: got.RootPath,
+		Port:     got.config.port,
+	}
+
+	return &myRenderer
 }
