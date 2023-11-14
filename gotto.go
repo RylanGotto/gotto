@@ -11,6 +11,7 @@ import (
 	"github.com/RylanGotto/gotto/render"
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
+	"github.com/CloudyKit/jet/v6"
 )
 
 const version = "1.0.0"
@@ -24,6 +25,7 @@ type Gotto struct {
 	RootPath string
 	Routes   *chi.Mux
 	Render   *render.Render
+	JetViews *jet.Set
 	config   config
 }
 
@@ -68,7 +70,14 @@ func (g *Gotto) New(rootPath string) error {
 		renderer: os.Getenv("RENDERER"),
 	}
 
-	g.Render = g.createRenderer(g)
+	var views = jet.NewSet(
+		jet.NewOSFileSystemLoader(fmt.Sprintf("%s/views", rootPath)),
+		jet.InDevelopmentMode(),
+	)
+
+	g.JetViews = views
+
+	g.createRenderer()
 
 	return nil
 }
@@ -120,12 +129,12 @@ func (g *Gotto) ListenAndServe() {
 	g.ErrorLog.Fatal(err)
 }
 
-func (g *Gotto) createRenderer(got *Gotto) *render.Render {
+func (g *Gotto) createRenderer() {
 	myRenderer := render.Render{
-		Renderer: got.config.renderer,
-		RootPath: got.RootPath,
-		Port:     got.config.port,
+		Renderer: g.config.renderer,
+		RootPath: g.RootPath,
+		Port:     g.config.port,
+		JetViews: g.JetViews,
 	}
-
-	return &myRenderer
+	g.Render = &myRenderer
 }
